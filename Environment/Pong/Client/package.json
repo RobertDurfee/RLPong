@@ -1,0 +1,14 @@
+{
+  "name": "pongclient",
+  "version": "1.0.0",
+  "description": "Pong frontend UI for viewing and interacting with pong games.",
+  "main": "Client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Robert Durfee",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.4"
+  }
+}

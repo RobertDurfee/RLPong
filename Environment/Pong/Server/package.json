@@ -1,0 +1,15 @@
+{
+  "name": "pongserver",
+  "version": "1.0.0",
+  "description": "Pong API to bridge between backend game logic and fronted UI.",
+  "main": "Server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Robert Durfee",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {
+    "express": "^4.16.4"
+  }
+}
