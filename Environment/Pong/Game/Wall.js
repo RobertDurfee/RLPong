@@ -18,8 +18,12 @@ class Wall {
   doesBounce (ball) {
     if (this.type === 'lower') {
       return ((ball['y'] + ball['radius']) >= this.edge)
-    } else {
+    } else if (this.type === 'upper') {
       return ((ball['y'] - ball['radius']) <= this.edge)
+    } else if (this.type === 'right') {
+      return ((ball['x'] + ball['radius']) >= this.edge)
+    } else if (this.type === 'left') {
+      return ((ball['x'] - ball['radius']) <= this.edge)
     }
   }
 

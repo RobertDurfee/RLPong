@@ -1,4 +1,3 @@
-const argv = require('yargs').argv
 const Wall = require('./Wall')
 const Goal = require('./Goal')
 const Paddle = require('./Paddle')
@@ -8,207 +7,224 @@ function randomSign () {
   return Math.floor(Math.random() * 2) == 1 ? 1 : -1
 }
 
-function randomTrajectory() {
-  var dx = Math.random() * randomSign()
-  var dy = Math.random() * randomSign()
+function randomTrajectory (minSpeed, maxSpeed, maxAngle, sign) {
+  var rnd = Math.random()
 
-  var norm = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) 
+  var angle = rnd * maxAngle * randomSign()
 
-  dx /= norm
-  dy /= norm
+  var dx = sign * Math.cos(angle * Math.PI / 180)
+  var dy = Math.sin(angle * Math.PI / 180)
 
-  return { 'dx': dx, 'dy': dy }
+  var speed = (maxSpeed - minSpeed) * rnd + minSpeed
+
+  return { 'dx': dx, 'dy': dy, 'speed': speed }
 }
 
-const id = argv['id']
+module.exports = class Game {
+  constructor (id, boardHeight, boardWidth, goalWidth, ballRadius, ballMinSpeed, ballMaxSpeed, maxAngle, paddleHeight, paddleWidth, paddleSpeed, paddlePadding) {
+    this.id = id
+    this.boardHeight = boardHeight
+    this.boardWidth = boardWidth
+    this.goalWidth = goalWidth
+    this.ballRadius = ballRadius
+    this.ballMinSpeed = ballMinSpeed
+    this.ballMaxSpeed = ballMaxSpeed
+    this.maxAngle = maxAngle
+    this.paddleHeight = paddleHeight
+    this.paddleWidth = paddleWidth
+    this.paddleSpeed = paddleSpeed
+    this.paddlePadding = paddlePadding
+    this.playerOneHitCount = 0
+    this.playerTwoHitCount = 0
+    this.playerOneScore = 0
+    this.playerTwoScore = 0
 
-const boardHeight = argv['boardHeight']
-const boardWidth = argv['boardWidth']
-var upperWall = new Wall('upper', 0)
-var lowerWall = new Wall('lower', boardHeight)
+    this.upperWall = new Wall('upper', 0)
+    this.lowerWall = new Wall('lower', this.boardHeight)
+    this.leftWall = new Wall('left', 0)
+    this.rightWall = new Wall('right', this.boardWidth)
 
-const goalWidth = argv['goalWidth']
-const leftGoalEdge = goalWidth
-const rightGoalEdge = boardWidth - goalWidth
-var playerOneGoal = new Goal('left', leftGoalEdge)
-var playerTwoGoal = new Goal('right', rightGoalEdge)
+    this.playerOneGoal = new Goal('left', this.goalWidth)
+    this.playerTwoGoal = new Goal('right', this.boardWidth - this.goalWidth)
 
-const ballRadius = argv['ballRadius']
-const ballMaxSpeed = argv['ballMaxSpeed']
-const ballSpeed = argv['ballSpeed']
-var trajectory = randomTrajectory()
-var ball = new Ball(boardWidth / 2, boardHeight / 2, trajectory['dx'], trajectory['dy'], ballRadius, ballSpeed, ballMaxSpeed)
+    this.playerOnePaddle = new Paddle('left', this.paddleHeight, this.paddleWidth, this.goalWidth, this.boardHeight / 2, this.paddleSpeed, this.maxAngle, this.paddlePadding, this.boardHeight - this.paddlePadding)
+    this.playerTwoPaddle = new Paddle('right', this.paddleHeight, this.paddleWidth, this.boardWidth - this.goalWidth, this.boardHeight / 2, this.paddleSpeed, this.maxAngle, this.paddlePadding, this.boardHeight - this.paddlePadding)
 
-const paddleHeight = argv['paddleHeight']
-const paddleWidth = argv['paddleWidth']
-const paddleSpeed = argv['paddleSpeed']
-const maxAngle = argv['maxAngle']
-const paddlePadding = argv['paddlePadding']
-const upperBound = paddlePadding
-const lowerBound = boardHeight - paddlePadding
-var playerOnePaddle = new Paddle('left', paddleHeight, paddleWidth, leftGoalEdge, boardHeight / 2, paddleSpeed, maxAngle, upperBound, lowerBound)
-var playerTwoPaddle = new Paddle('right', paddleHeight, paddleWidth, rightGoalEdge, boardHeight / 2, paddleSpeed, maxAngle, upperBound, lowerBound)
+    var trajectory = randomTrajectory(this.ballMinSpeed, this.ballMaxSpeed, this.maxAngle, randomSign())
+    this.ball = new Ball(this.boardWidth / 2, this.boardHeight / 2, trajectory['dx'], trajectory['dy'], this.ballRadius, trajectory['speed'], this.ballMinSpeed, this.ballMaxSpeed)
+  }
 
-var playerOneHitCount = 0
-var playerTwoHitCount = 0
-var playerOneScore = 0
-var playerTwoScore = 0
+  getGame () {
+    return {
+      'board': this.getBoard(),
+      'paddles': this.getPaddles(),
+      'ball': this.getBall(),
+      'scores': this.getScores(),
+      'hitCounts': this.getHitCounts()
+    }
+  }
 
-process.on('message', message => {
-  switch (message['type']) {
-    case 'getGame':
-      process.send({
-        'id': message['id'],
-        'board': {
-          'height': boardHeight,
-          'width': boardWidth,
-          'goals': {
-            'playerOne': playerOneGoal.getState(),
-            'playerTwo': playerTwoGoal.getState()
-          },
-          'walls': {
-            'upperWall': upperWall.getState(),
-            'lowerWall': lowerWall.getState()
-          }
-        },
-        'paddles': {
-          'playerOne': playerOnePaddle.getState(),
-          'playerTwo': playerTwoPaddle.getState()
-        },
-        'ball': ball.getState(),
-        'scores': {
-          'playerOne': playerOneScore,
-          'playerTwo': playerTwoScore
-        },
-        'hitCounts': {
-          'playerOne': playerOneHitCount,
-          'playerTwo': playerTwoHitCount
-        }
-      })
-      break
-    case 'getPaddles':
-      process.send({
-        'id': message['id'],
-        'playerOne': playerOnePaddle.getState(),
-        'playerTwo': playerTwoPaddle.getState()
-      })
-      break
-    case 'movePaddles':
-      playerOneMoves = message['playerOne']['up'] - message['playerOne']['down']
-      if (playerOneMoves > 0) {
-        for (i = 0; i < playerOneMoves; i++) {
-          playerOnePaddle.move('up')
-        }
-      } else {
-        for (i = 0; i < -playerOneMoves; i++) {
-          playerOnePaddle.move('down')
-        }
+  getBoard () {
+    return {
+      'height': this.boardHeight,
+      'width': this.boardWidth,
+      'walls': this.getWalls(),
+      'goals': this.getGoals()
+    }
+  }
+
+  getWalls () {
+    return {
+      'upperWall': this.upperWall.getState(),
+      'lowerWall': this.lowerWall.getState(),
+      'leftWall': this.leftWall.getState(),
+      'rightWall': this.rightWall.getState()
+    }
+  }
+
+  getGoals () {
+    return {
+      'playerOne': this.playerOneGoal.getState(),
+      'playerTwo': this.playerTwoGoal.getState()
+    }
+  }
+
+  getPaddles () {
+    return {
+      'playerOne': this.playerOnePaddle.getState(),
+      'playerTwo': this.playerTwoPaddle.getState()
+    }
+  }
+
+  getBall () {
+    return this.ball.getState()
+  }
+
+  getScores () {
+    return {
+      'playerOne': this.playerOneScore,
+      'playerTwo': this.playerTwoScore
+    }
+  }
+
+  getHitCounts () {
+    return {
+      'playerOne': this.playerOneHitCount,
+      'playerTwo': this.playerTwoHitCount
+    }
+  }
+
+  movePaddles (playerOneUp, playerOneDown, playerTwoUp, playerTwoDown) {
+    var playerOneMoves = playerOneUp - playerOneDown
+    if (playerOneMoves > 0) {
+      for (var i = 0; i < playerOneMoves; i++) {
+        this.playerOnePaddle.move('up')
       }
-
-      playerTwoMoves = message['playerTwo']['up'] - message['playerTwo']['down']
-      if (playerTwoMoves > 0) {
-        for (i = 0; i < playerTwoMoves; i++) {
-          playerTwoPaddle.move('up')
-        }
-      } else {
-        for (i = 0; i < -playerTwoMoves; i++) {
-          playerTwoPaddle.move('down')
-        }
-      }
-
-      process.send({
-        'id': message['id'],
-        'playerOne': playerOnePaddle.getState(),
-        'playerTwo': playerTwoPaddle.getState()
-      })
-      break
-    case 'getBall':
-      ballState = ball.getState()
-      ballState['id'] = message['id']
-      process.send(ballState)
-      break
-    case 'getScores':
-      process.send({
-        'id': message['id'],
-        'playerOne': playerOneScore,
-        'playerTwo': playerTwoScore
-      })
-      break
-    case 'getHitCounts':
-      process.send({
-        'id': message['id'],
-        'playerOne': playerOneHitCount,
-        'playerTwo': playerTwoHitCount
-      })
-      break
-  }
-})
-
-function update() {
-  if (upperWall.doesBounce(ball)) {
-    ball = upperWall.bounce(ball)
-  }
-  
-  if (lowerWall.doesBounce(ball)) {
-    ball = lowerWall.bounce(ball)
-  }
-
-  if (playerOneGoal.doesReach(ball)) {
-    if (playerOnePaddle.doesBounce(ball)) {
-      playerOneHitCount++
-      ball = playerOnePaddle.bounce(ball)
     } else {
-      playerTwoScore++
-      trajectory = randomTrajectory()
-      ball = new Ball(boardWidth / 2, boardHeight / 2, trajectory['dx'], trajectory['dy'], ballRadius, ballSpeed, ballMaxSpeed)
+      for (var i = 0; i < -playerOneMoves; i++) {
+        this.playerOnePaddle.move('down')
+      }
+    }
+
+    var playerTwoMoves = playerTwoUp - playerTwoDown
+    if (playerTwoMoves > 0) {
+      for (var i = 0; i < playerTwoMoves; i++) {
+        this.playerTwoPaddle.move('up')
+      }
+    } else {
+      for (var i = 0; i < -playerTwoMoves; i++) {
+        this.playerTwoPaddle.move('down')
+      }
+    }
+
+    return this.getPaddles()
+  }
+
+  liveUpdate () {
+    if (this.upperWall.doesBounce(this.ball)) {
+      this.ball = this.upperWall.bounce(this.ball)
+    }
+    
+    if (this.lowerWall.doesBounce(this.ball)) {
+      this.ball = this.lowerWall.bounce(this.ball)
+    }
+
+    if (this.playerOneGoal.doesReach(this.ball)) {
+      if (this.playerOnePaddle.doesBounce(this.ball)) {
+        this.playerOneHitCount++
+
+        this.ball.increaseMaxSpeed(0.01)
+
+        this.ball = this.playerOnePaddle.bounce(this.ball)
+      } else {
+        this.stopRound()
+        this.startDeadRound()
+        return
+      }
+    }
+
+    if (this.playerTwoGoal.doesReach(this.ball)) {
+      if (this.playerTwoPaddle.doesBounce(this.ball)) {
+        this.playerTwoHitCount++
+
+        this.ball.increaseMaxSpeed(0.01)
+
+        this.ball = this.playerTwoPaddle.bounce(this.ball)
+      } else {
+        this.stopRound()
+        this.startDeadRound()
+        return
+      }
+    }
+
+    this.ball.move()
+  }
+
+  deadUpdate () {
+    if (this.upperWall.doesBounce(this.ball)) {
+      this.ball = this.upperWall.bounce(this.ball)
+    }
+    
+    if (this.lowerWall.doesBounce(this.ball)) {
+      this.ball = this.lowerWall.bounce(this.ball)
+    }
+
+    if (this.leftWall.doesBounce(this.ball)) {
+      this.playerTwoScore++
+
+      var trajectory = randomTrajectory(this.ballMinSpeed, this.ballMaxSpeed, this.maxAngle, -1)
+      this.ball = new Ball(this.boardWidth / 2, this.boardHeight / 2, trajectory['dx'], trajectory['dy'], this.ballRadius, trajectory['speed'], this.ballMinSpeed, this.ballMaxSpeed)
+
+      this.stopRound()
+      setTimeout(() => { this.startLiveRound() }, 2000)
+
       return
     }
-  }
 
-  if (playerTwoGoal.doesReach(ball)) {
-    if (playerTwoPaddle.doesBounce(ball)) {
-      playerTwoHitCount++
-      ball = playerTwoPaddle.bounce(ball)
-    } else {
-      playerOneScore++
-      trajectory = randomTrajectory()
-      ball = new Ball(boardWidth / 2, boardHeight / 2, trajectory['dx'], trajectory['dy'], ballRadius, ballSpeed, ballMaxSpeed)
+    if (this.rightWall.doesBounce(this.ball)) {
+      this.playerOneScore++
+
+      var trajectory = randomTrajectory(this.ballMinSpeed, this.ballMaxSpeed, this.maxAngle, 1)
+      this.ball = new Ball(this.boardWidth / 2, this.boardHeight / 2, trajectory['dx'], trajectory['dy'], this.ballRadius, trajectory['speed'], this.ballMinSpeed, this.ballMaxSpeed)
+
+      this.stopRound()
+      setTimeout(() => { this.startLiveRound() }, 2000)
+
       return
     }
+
+    this.ball.move()
   }
 
-  ball.move()
-}
+  startLiveRound () {
+    this.interval = setInterval(() => { this.liveUpdate() }, 50 / 3)  // 60 Hz
+  }
 
-if (process.send) {
-  process.send({
-    'id': id,
-    'board': {
-      'height': boardHeight,
-      'width': boardWidth,
-      'goals': {
-        'playerOne': playerOneGoal.getState(),
-        'playerTwo': playerTwoGoal.getState()
-      },
-      'walls': {
-        'upperWall': upperWall.getState(),
-        'lowerWall': lowerWall.getState()
-      }
-    },
-    'paddles': {
-      'playerOne': playerOnePaddle.getState(),
-      'playerTwo': playerTwoPaddle.getState()
-    },
-    'ball': ball.getState(),
-    'scores': {
-      'playerOne': playerOneScore,
-      'playerTwo': playerTwoScore
-    },
-    'hitCounts': {
-      'playerOne': playerOneHitCount,
-      'playerTwo': playerTwoHitCount
-    }
-  })
-}
+  startDeadRound () {
+    this.interval = setInterval(() => { this.deadUpdate() }, 50 / 3)  // 60 Hz
+  }
 
-setInterval(update, 10)
+  stopRound () {
+    clearInterval(this.interval)
+  }
+}

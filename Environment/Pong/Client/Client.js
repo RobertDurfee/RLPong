@@ -2,15 +2,15 @@ var body = document.getElementsByTagName('body')[0]
 
 const boardHeight = 525
 const boardWidth = 858
-const goalWidth = 30
-const ballRadius = 10
-const ballMaxSpeed = 10
-const ballSpeed = 5
-const paddleHeight = 100
-const paddleWidth = 20
-const paddleSpeed = 15
+const goalWidth = 175
+const ballRadius = 4
+const ballMinSpeed = 3
+const ballMaxSpeed = 5
+const paddleHeight = 37
+const paddleWidth = 7
+const paddleSpeed = 10
 const maxAngle = 60
-const paddlePadding = 50
+const paddlePadding = 30
 
 var board = new Board(boardHeight, boardWidth)
 board.appendTo(body)
@@ -22,6 +22,8 @@ var playerOnePaddle = new Paddle(paddleHeight, paddleWidth, goalWidth, boardHeig
 var playerTwoPaddle = new Paddle(paddleHeight, paddleWidth, boardWidth - goalWidth, boardHeight / 2)
 playerOnePaddle.appendTo(board.svg)
 playerTwoPaddle.appendTo(board.svg)
+
+var stats = new Stats('ball-x', 'ball-y', 'ball-speed', 'player-one-score', 'player-two-score', 'player-one-hit-count', 'player-two-hit-count')
 
 document.addEventListener('keydown', keyDownHandler, false)
 document.addEventListener('keyup', keyUpHandler, false)
@@ -69,6 +71,8 @@ async function update () {
   let game = await getGame(gameId)
   ball.setPosition(game['ball']['x'], game['ball']['y'])
 
+  stats.setStats(game['ball']['x'], game['ball']['y'], game['ball']['speed'], game['scores']['playerOne'], game['scores']['playerTwo'], game['hitCounts']['playerOne'], game['hitCounts']['playerTwo'])
+
   if (playerOneUpPressed || playerOneDownPressed || playerTwoUpPressed || playerTwoDownPressed) {
     paddles = await movePaddles(gameId, {
       'up': playerOneUpPressed ? 1 : 0,
@@ -85,7 +89,7 @@ async function update () {
 
 var gameId
 
-startGame(boardHeight, boardWidth, goalWidth, ballRadius, ballSpeed, ballMaxSpeed, paddleHeight, paddleWidth, paddleSpeed, maxAngle, paddlePadding)
+startGame(boardHeight, boardWidth, goalWidth, ballRadius, ballMinSpeed, ballMaxSpeed, paddleHeight, paddleWidth, paddleSpeed, maxAngle, paddlePadding)
   .then(game => {
     gameId = game.id
     setInterval(update, 16.67)

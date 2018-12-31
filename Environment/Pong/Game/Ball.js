@@ -1,6 +1,6 @@
 class Ball {
-  constructor (x, y, dx, dy, radius, speed, maxSpeed) {
-    this.setState(x, y, dx, dy, radius, speed, maxSpeed)
+  constructor (x, y, dx, dy, radius, speed, minSpeed, maxSpeed) {
+    this.setState(x, y, dx, dy, radius, speed, minSpeed, maxSpeed)
   }
 
   getState () {
@@ -11,17 +11,19 @@ class Ball {
       'dy': this.dy,
       'radius': this.radius,
       'speed': this.speed,
+      'minSpeed': this.minSpeed,
       'maxSpeed': this.maxSpeed
     }
   }
 
-  setState (x, y, dx, dy, radius, speed, maxSpeed) {
+  setState (x, y, dx, dy, radius, speed, minSpeed, maxSpeed) {
     this.x = x
     this.y = y
     this.dx = dx
     this.dy = dy
     this.radius = radius
     this.speed = speed
+    this.minSpeed = minSpeed
     this.maxSpeed = maxSpeed
   }
 
@@ -29,8 +31,8 @@ class Ball {
     this.speed = speed
   }
 
-  increaseMaxSpeed () {
-    this.maxSpeed = maxSpeed + 1
+  increaseMaxSpeed (multiple) {
+    this.maxSpeed = this.maxSpeed + this.maxSpeed * multiple
   }
 
   setTrajectory (dx, dy) {

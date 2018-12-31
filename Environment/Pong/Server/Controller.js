@@ -6,13 +6,13 @@ const callbacks = {}
 
 exports.startGame = function (req, res) {
   let gameId = guid()
-  children[gameId] = fork('../Game/Game.js', [
+  children[gameId] = fork('../Game/Main.js', [
     '--id=' + gameId,
     '--boardHeight=' + req.body.boardHeight,
     '--boardWidth=' + req.body.boardWidth,
     '--goalWidth=' + req.body.goalWidth,
     '--ballRadius=' + req.body.ballRadius,
-    '--ballSpeed=' + req.body.ballSpeed,
+    '--ballMinSpeed=' + req.body.ballMinSpeed,
     '--ballMaxSpeed=' + req.body.ballMaxSpeed,
     '--paddleHeight=' + req.body.paddleHeight,
     '--paddleWidth=' + req.body.paddleWidth,

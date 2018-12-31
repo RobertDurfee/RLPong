@@ -67,7 +67,7 @@ class Paddle {
   bounce (ball) {
     var impact = this.impact(ball['y'])
 
-    var speed = ball['maxSpeed'] * Math.abs(impact)
+    var speed = (ball['maxSpeed'] - ball['minSpeed']) * Math.abs(impact) + ball['minSpeed']
     ball.setSpeed(speed)
 
     var angle = this.maxAngle * impact

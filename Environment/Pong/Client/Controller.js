@@ -1,4 +1,4 @@
-async function startGame (boardHeight, boardWidth, goalWidth, ballRadius, ballSpeed, ballMaxSpeed, paddleHeight, paddleWidth, paddleSpeed, maxAngle, paddlePadding) {
+async function startGame (boardHeight, boardWidth, goalWidth, ballRadius, ballMinSpeed, ballMaxSpeed, paddleHeight, paddleWidth, paddleSpeed, maxAngle, paddlePadding) {
   const response = await fetch('http://localhost:21052/v1/pong/games', {
     'method': 'POST',
     'body': JSON.stringify({
@@ -6,7 +6,7 @@ async function startGame (boardHeight, boardWidth, goalWidth, ballRadius, ballSp
       'boardWidth': boardWidth,
       'goalWidth': goalWidth,
       'ballRadius': ballRadius,
-      'ballSpeed': ballSpeed,
+      'ballMinSpeed': ballMinSpeed,
       'ballMaxSpeed': ballMaxSpeed,
       'paddleHeight': paddleHeight,
       'paddleWidth': paddleWidth,
